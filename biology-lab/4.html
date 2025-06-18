@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>光合作用相关实验设计系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            text-align: left;
+            font-size: 18px;
+        }
+
+        .option-group {
+            display: block;
+            margin-bottom: 15px;
+        }
+
+        #feedback {
+            width: 350px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: left;
+            font-size: 18px;
+            min-height: 120px;
+            margin-top: 0;
+        }
+
+        .material-box {
+            border: 2px dashed #90a4ae;
+            padding: 15px;
+            margin: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .draggable {
+            cursor: move;
+            transition: all 0.3s;
+            position: relative;
+            z-index: 20; /* 实验材料在顶层 */
+        }
+
+        .plant-img {
+            width: 150px;
+            height: 200px;
+            object-fit: contain;
+        }
+
+        .beaker {
+            width: 70px;
+            height: 90px;
+        }
+
+        .light-source {
+            width: 120px;
+            height: 120px;
+            filter: drop-shadow(0 0 8px orange);
+        }
+
+        .glass-cover-img {
+            width: 400px; /* 玻璃罩宽度 */
+            height: 500px; /* 玻璃罩高度 */
+            object-fit: contain;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            z-index: 10; /* 玻璃罩在底层 */
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 20px;
+        }
+
+        .experiment-wrapper {
+            width: 500px;
+            border: 2px dashed #ffa726;
+            padding: 15px;
+            border-radius: 10px;
+            position: relative;
+            min-height: 550px;
+        }
+
+        .glass-cover-area {
+            width: 450px;
+            height: 550px;
+            border: 2px dotted #80d8ff;
+            border-radius: 10px;
+            margin: 15px auto;
+            padding: 15px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .glass-container {
+            position: relative;
+            width: 400px;
+            height: 500px;
+        }
+
+        .glass-inner-area {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 400px;
+            height: 400px;
+            display: flex;
+            flex-direction: row; /* 横向排列 */
+            align-items: flex-end;
+            justify-content: center;
+            gap: 20px; /* 元素间间距 */
+            z-index: 15; /* 内部区域在玻璃罩上方，但在材料下方 */
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 30px;
+            background: #1565c0;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+
+        .error-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ffebee;
+            border: 2px solid #f44336;
+            color: #d32f2f;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 100;
+            display: none;
+        }
+
+        /* 材料区中的小型玻璃罩 */
+        #materialBox .glass-cover-img {
+            width: 150px; /* 材料区中玻璃罩宽度 */
+            height: 180px; /* 材料区中玻璃罩高度 */
+            position: static;
+        }
+    </style>
+</head>
+
+<body>
+    <h2 style="text-align: center; color: #0d47a1;">光合作用实验验证系统</h2>
+
+    <div class="header-container">
+        <div class="controls">
+            <div id="variable-selector">
+                <span class="option-group">
+                    <label>选择变量：</label>
+                    <button onclick="selectVariable('二氧化碳')">二氧化碳</button>
+                    <button onclick="selectVariable('光')">光</button>
+                    <button onclick="selectVariable('叶绿体')">叶绿体</button>
+                </span>
+            </div>
+
+            <div id="verification-method">
+                <span class="option-group">
+                    <label>验证方式：</label>
+                    <button onclick="selectVerification('碘液')">碘液</button>
+                    <button onclick="selectVerification('快熄灭的卫生香')">快熄灭的卫生香</button>
+                </span>
+            </div>
+
+            <div id="dark-treatment">
+                <span class="option-group">
+                    <label>是否暗处理：</label>
+                    <button onclick="selectDarkTreatment('是')">是</button>
+                    <button onclick="selectDarkTreatment('否')">否</button>
+                </span>
+            </div>
+        </div>
+
+        <div id="feedback">请依次选择变量、验证方式和暗处理选项，然后搭建实验装置，完成后点击验证</div>
+    </div>
+
+    <!-- 错误提示弹窗 -->
+    <div id="errorPopup" class="error-popup">
+        <p id="errorMessage">错误信息</p>
+        <button onclick="document.getElementById('errorPopup').style.display='none'">确定</button>
+    </div>
+
+    <!-- 材料区 -->
+    <div class="material-box" id="materialBox">
+        <img src="images/plant.png" class="draggable plant-img" id="plant" draggable="true" alt="天竺葵">
+        <img src="images/hornwort.png" class="draggable plant-img" id="hornwort" draggable="true" alt="金鱼藻">
+        <img src="images/variegated-geranium.png" class="draggable plant-img" id="variegatedGeranium" draggable="true" alt="银边天竺葵">
+        <img src="images/naoh.png" class="draggable beaker" id="naoh" draggable="true" alt="氢氧化钠">
+        <img src="images/water.png" class="draggable beaker" id="water" draggable="true" alt="清水">
+        <img src="images/light.png" class="draggable light-source" id="light" draggable="true" alt="光源">
+        <img src="images/glass-cover.png" class="draggable glass-cover-img" id="glassCover" draggable="true" alt="玻璃罩">
+    </div>
+
+    <!-- 实验装置区 -->
+    <div class="container" id="normalContainer">
+        <div class="experiment-wrapper" id="expWrapper">
+            <h3>实验组</h3>
+            <div class="glass-cover-area" id="expGlassArea"></div>
+        </div>
+        <div class="experiment-wrapper" id="controlWrapper">
+            <h3>对照组</h3>
+            <div class="glass-cover-area" id="controlGlassArea"></div>
+        </div>
+    </div>
+    <div class="experiment-wrapper" id="chloroplastContainer" style="display: none;">
+        <h3>实验装置</h3>
+        <div class="glass-cover-area" id="chloroplastGlassArea"></div>
+    </div>
+
+    <div style="text-align: center; margin-top: 20px;">
+        <button onclick="validateExperiment()">验证实验</button>
+        <button onclick="resetExperiment()">重置装置</button>
+    </div>
+
+    <script>
+        let draggedItem = null;
+        let selectedVariable = null;
+        let verificationMethod = null;
+        let darkTreatment = null;
+        let selectedPlant = null;
+
+        // 初始时禁用拖拽功能
+        document.addEventListener('DOMContentLoaded', () => {
+            disableDragging();
+        });
+
+        // 禁用拖拽功能
+        function disableDragging() {
+            document.querySelectorAll('.draggable').forEach(item => {
+                item.draggable = false;
+                item.style.opacity = '0.5';
+                item.style.pointerEvents = 'none';
+                item.style.cursor = 'not-allowed';
+            });
+        }
+
+        // 启用拖拽功能
+        function enableDragging() {
+            document.querySelectorAll('.draggable').forEach(item => {
+                item.draggable = true;
+                item.style.opacity = '1';
+                item.style.pointerEvents = 'auto';
+                item.style.cursor = 'move';
+            });
+
+            // 根据变量类型控制玻璃罩显示
+            if (selectedVariable === '光' || selectedVariable === '叶绿体') {
+                document.getElementById('glassCover').style.display = 'none';
+            } else {
+                document.getElementById('glassCover').style.display = 'block';
+            }
+        }
+
+        // 增强的拖拽功能
+        document.addEventListener('dragstart', e => {
+            if (!selectedVariable || !verificationMethod || !darkTreatment) {
+                e.preventDefault();
+                showFeedback("请先完成变量、验证方式和暗处理的选择", false);
+                return;
+            }
+
+            // 光或叶绿体变量时禁止拖拽玻璃罩
+            if ((selectedVariable === '光' || selectedVariable === '叶绿体') && e.target.id === 'glassCover') {
+                e.preventDefault();
+                showFeedback(selectedVariable === '光' ? "探究光作为变量时不需要玻璃罩" : "探究叶绿体作为变量时不需要玻璃罩", false);
+                return;
+            }
+
+            draggedItem = e.target;
+            e.target.style.transform = 'scale(0.95)';
+            e.dataTransfer.setData('text/plain', e.target.id);
+        });
+
+        document.addEventListener('dragend', e => {
+            e.target.style.transform = 'scale(1)';
+        });
+
+        document.addEventListener('dragover', e => {
+            e.preventDefault();
+            const target = e.target.closest('.glass-cover-area, .glass-inner-area, .experiment-wrapper, .material-box');
+            if (target) {
+                target.style.backgroundColor = 'rgba(200, 230, 255, 0.5)';
+            }
+        });
+
+        document.addEventListener('dragleave', e => {
+            const target = e.target.closest('.glass-cover-area, .glass-inner-area, .experiment-wrapper, .material-box');
+            if (target) {
+                target.style.backgroundColor = '';
+            }
+        });
+
+        document.addEventListener('drop', e => {
+            if (!selectedVariable || !verificationMethod || !darkTreatment) {
+                showFeedback("请先完成变量、验证方式和暗处理的选择", false);
+                return;
+            }
+
+            e.preventDefault();
+            const target = e.target.closest('.glass-cover-area, .glass-inner-area, .experiment-wrapper, .material-box');
+            if (target) {
+                target.style.backgroundColor = '';
+
+                // 如果拖到材料区，移除该物品
+                if (target.classList.contains('material-box') && draggedItem.parentNode!== target) {
+                    draggedItem.parentNode.removeChild(draggedItem);
+                    return;
+                }
+
+                // 获取当前实验区
+                const experimentWrapper = target.closest('.experiment-wrapper');
+                if (!experimentWrapper) return;
+
+                // 处理拖入实验区
+                if (target.classList.contains('glass-cover-area') ||
+                    target.classList.contains('glass-inner-area') ||
+                    target.classList.contains('experiment-wrapper')) {
+
+                    // 处理玻璃罩放置逻辑
+                    if (draggedItem.id === 'glassCover') {
+                        // 确保玻璃罩区域没有其他玻璃罩
+                        const glassCovers = experimentWrapper.querySelectorAll('.glass-container');
+                        if (glassCovers.length > 0) {
+                            showErrorPopup("每个实验区只能放置一个玻璃罩");
+                            return;
+                        }
+
+                        // 创建玻璃罩克隆
+                        const clone = draggedItem.cloneNode();
+                        clone.style.opacity = '1';
+                        clone.draggable = true;
+
+                        // 创建玻璃罩容器
+                        const glassContainer = document.createElement('div');
+                        glassContainer.className = 'glass-container';
+                        glassContainer.style.position = 'relative';
+                        glassContainer.style.width = '400px';
+                        glassContainer.style.height = '500px';
+
+                        // 添加玻璃罩和内部容器
+                        glassContainer.appendChild(clone);
+
+                        // 创建内部放置区域
+                        const innerArea = document.createElement('div');
+                        innerArea.className = 'glass-inner-area';
+                        innerArea.style.position = 'absolute';
+                        innerArea.style.bottom = '0';
+                        innerArea.style.left = '0';
+                        innerArea.style.width = '400px';
+                        innerArea.style.height = '400px';
+                        innerArea.style.display = 'flex';
+                        innerArea.style.flexDirection = 'row'; // 横向排列
+                        innerArea.style.alignItems = 'flex-end';
+                        innerArea.style.justifyContent = 'center';
+                        innerArea.style.gap = '20px';
+
+                        glassContainer.appendChild(innerArea);
+
+                        if (target.classList.contains('glass-cover-area')) {
+                            target.innerHTML = ''; // 清空区域
+                            target.appendChild(glassContainer);
+                        } else {
+                            const glassArea = experimentWrapper.querySelector('.glass-cover-area');
+                            if (glassArea) {
+                                glassArea.innerHTML = '';
+                                glassArea.appendChild(glassContainer);
+                            }
+                        }
+
+                        return;
+                    }
+
+                    // 光源处理 - 自动定位
+                    if (draggedItem.id === 'light') {
+                        const existingLights = experimentWrapper.querySelectorAll('#light');
+                        if (existingLights.length > 0) {
+                            showErrorPopup("每个实验区只能放置一个光源");
+                            return;
+                        }
+
+                        const clone = draggedItem.cloneNode();
+                        clone.style.opacity = '1';
+                        clone.draggable = true;
+                        clone.className = 'draggable light-source';
+
+                        // 自动定位
+                        const rect = experimentWrapper.getBoundingClientRect();
+                        const x = e.clientX - rect.left - 60;
+                        const y = e.clientY - rect.top - 60;
+                        clone.style.position = 'absolute';
+                        clone.style.left = `${x}px`;
+                        clone.style.top = `${y}px`;
+
+                        experimentWrapper.appendChild(clone);
+                        clone.addEventListener('dragstart', e => draggedItem = e.target);
+                        return;
+                    }
+
+                    // 对于其他物品，检查是否应该放在玻璃罩内
+                    const glassContainer = target.closest('.glass-container');
+                    if (glassContainer) {
+                        const innerArea = glassContainer.querySelector('.glass-inner-area');
+                        if (innerArea) {
+                            // 检查是否已存在相同类型的物品
+                            const existingItems = innerArea.querySelectorAll(`#${draggedItem.id}`);
+                            if (existingItems.length > 0) {
+                                showErrorPopup(`每个实验区只能放置一个${draggedItem.alt}`);
+                                return;
+                            }
+
+                            const clone = draggedItem.cloneNode();
+                            clone.style.opacity = '1';
+                            clone.draggable = true;
+
+                            if (clone.id === 'plant' || clone.id === 'hornwort' || clone.id === 'variegatedGeranium') {
+                                clone.className = 'draggable plant-img';
+                                // 调整植物在玻璃罩内的显示方式
+                                clone.style.width = '120px'; // 缩小植物宽度
+                                clone.style.height = '160px'; // 缩小植物高度
+                            }
+                            if (clone.id === 'naoh' || clone.id === 'water') {
+                                clone.className = 'draggable beaker';
+                                // 调整烧杯在玻璃罩内的显示方式
+                                clone.style.width = '50px'; // 缩小烧杯宽度
+                                clone.style.height = '70px'; // 缩小烧杯高度
+                            }
+
+                            innerArea.appendChild(clone);
+
+                            // 记录选择的植物
+                            if (clone.id === 'plant') {
+                                selectedPlant = '天竺葵';
+                            } else if (clone.id === 'hornwort') {
+                                selectedPlant = '金鱼藻';
+                            } else if (clone.id === 'variegatedGeranium') {
+                                selectedPlant = '银边天竺葵';
+                            }
+
+                            clone.addEventListener('dragstart', e => draggedItem = e.target);
+                            return;
+                        }
+                    }
+
+                    // 其他物品默认放在玻璃罩区域
+                    if (target.classList.contains('glass-cover-area')) {
+                        // 如果没有玻璃罩，提示用户先放置玻璃罩（当变量是二氧化碳时）
+                        if (selectedVariable === '二氧化碳' && target.innerHTML.trim() === '') {
+                            showFeedback("探究二氧化碳作为变量时，需要先放置玻璃罩", false);
+                            return;
+                        }
+
+                        // 检查是否已存在相同类型的物品
+                        const existingItems = experimentWrapper.querySelectorAll(`#${draggedItem.id}`);
+                        if (existingItems.length > 0) {
+                            showErrorPopup(`每个实验区只能放置一个${draggedItem.alt}`);
+                            return;
+                        }
+
+                        const clone = draggedItem.cloneNode();
+                        clone.style.opacity = '1';
+                        clone.draggable = true;
+
+                        if (clone.id === 'plant' || clone.id === 'hornwort' || clone.id === 'variegatedGeranium')
+                            clone.className = 'draggable plant-img';
+                        if (clone.id === 'naoh' || clone.id === 'water') clone.className = 'draggable beaker';
+
+                        target.appendChild(clone);
+
+                        // 记录选择的植物
+                        if (clone.id === 'plant') {
+                            selectedPlant = '天竺葵';
+                        } else if (clone.id === 'hornwort') {
+                            selectedPlant = '金鱼藻';
+                        } else if (clone.id === 'variegatedGeranium') {
+                            selectedPlant = '银边天竺葵';
+                        }
+
+                        clone.addEventListener('dragstart', e => draggedItem = e.target);
+                    }
+                }
+            }
+        });
+
+        // 选择变量
+        function selectVariable(variable) {
+            selectedVariable = variable;
+
+            // 控制金鱼藻图片显示
+            const hornwortImg = document.getElementById('hornwort');
+            if (variable === '二氧化碳') {
+                hornwortImg.style.display = 'none';
+
+                // 如果之前选择了金鱼藻，重置选择
+                if (selectedPlant === '金鱼藻') {
+                    selectedPlant = null;
+
+                    // 移除实验区中可能存在的金鱼藻
+                    document.querySelectorAll('#hornwort').forEach(el => {
+                        if (!el.parentNode.classList.contains('material-box')) {
+                            el.parentNode.removeChild(el);
+                        }
+                    });
+                }
+            } else {
+                hornwortImg.style.display = 'block';
+            }
+
+            // 控制实验区显示
+            if (variable === '叶绿体') {
+                document.getElementById('normalContainer').style.display = 'none';
+                document.getElementById('chloroplastContainer').style.display = 'block';
+            } else {
+                document.getElementById('normalContainer').style.display = 'flex';
+                document.getElementById('chloroplastContainer').style.display = 'none';
+            }
+
+            updateFeedback();
+            checkAndEnableDragging();
+        }
+
+        // 选择验证方式
+        function selectVerification(method) {
+            verificationMethod = method;
+            updateFeedback();
+            checkAndEnableDragging();
+        }
+
+        // 选择暗处理
+        function selectDarkTreatment(treatment) {
+            darkTreatment = treatment;
+            updateFeedback();
+            checkAndEnableDragging();
+        }
+
+        // 检查并启用拖拽功能
+        function checkAndEnableDragging() {
+            if (selectedVariable && verificationMethod && darkTreatment) {
+                enableDragging();
+                showFeedback("✅ 可以开始搭建实验装置了", true);
+            }
+        }
+
+        // 更新反馈信息
+        function updateFeedback() {
+            let msg = "已选择：<br>";
+            if (!selectedVariable) msg += "- 变量未选择<br>";
+            else msg += `- 变量：${selectedVariable}<br>`;
+
+            if (!verificationMethod) msg += "- 验证方式未选择<br>";
+            else msg += `- 验证方式：${verificationMethod}<br>`;
+
+            if (!darkTreatment) msg += "- 暗处理未选择";
+            else msg += `- 暗处理：${darkTreatment}`;
+
+            if (selectedVariable && verificationMethod && darkTreatment) {
+                if (selectedVariable === '二氧化碳') {
+                    msg += "<br><br>请先将玻璃罩拖拽到实验组和对照组，再放置植物和烧杯";
+                } else if (selectedVariable === '光') {
+                    msg += "<br><br>请搭建实验装置，注意探究光变量时不需要玻璃罩";
+                } else if (selectedVariable === '叶绿体') {
+                    msg += "<br><br>请选择银边天竺葵和光源搭建实验装置，不需要玻璃罩";
+                }
+                document.getElementById('feedback').style.backgroundColor = '#e8f5e9';
+                document.getElementById('feedback').style.borderColor = '#4CAF50';
+                document.getElementById('feedback').style.color = '#2e7d32';
+            } else {
+                document.getElementById('feedback').style.backgroundColor = '#fff3e0';
+                document.getElementById('feedback').style.borderColor = '#ff9800';
+                document.getElementById('feedback').style.color = '#e65100';
+            }
+
+            document.getElementById('feedback').innerHTML = msg;
+        }
+
+        // 验证函数（点击按钮后执行）
+        function validateExperiment() {
+            if (!selectedVariable || !verificationMethod || !darkTreatment) {
+                showFeedback("请先完成变量、验证方式和暗处理的选择", false);
+                return;
+            }
+
+            // 叶绿体变量时验证
+            if (selectedVariable === '叶绿体') {
+                if (verificationMethod!== '碘液') {
+                    showFeedback("选择叶绿体为变量时，验证方式必须选择碘液", false);
+                    return;
+                }
+                if (darkTreatment!== '是') {
+                    showFeedback("选择叶绿体为变量时，必须进行暗处理", false);
+                    return;
+                }
+                
+                // 验证实验装置
+                const chloroplastWrapper = document.getElementById('chloroplastContainer');
+                const hasPlant = chloroplastWrapper.querySelectorAll('#variegatedGeranium').length >= 1;
+                const hasLight = chloroplastWrapper.querySelectorAll('#light').length >= 1;
+                const hasOtherItems = chloroplastWrapper.querySelectorAll('#plant, #hornwort, #naoh, #water, #glassCover').length > 0;
+                
+                if (!hasPlant) {
+                    showFeedback("选择叶绿体为变量时，必须选择银边天竺葵为实验材料", false);
+                    return;
+                }
+                
+                if (!hasLight) {
+                    showFeedback("无光照无法进行光合作用，请添加光源", false);
+                    return;
+                }
+                
+                if (hasOtherItems) {
+                    showFeedback("选择叶绿体为变量时，实验装置中只能包含银边天竺葵和光源", false);
+                    return;
+                }
+                
+                // 验证成功
+                showFeedback("✅ 实验配置完全正确！<br><br>实验结论：<br>银边天竺葵绿色部分遇碘变蓝，白色部分遇碘不变蓝，证明叶绿体是光合作用的场所", true);
+                return;
+            }
+
+            // 验证实验设计选择
+            if (selectedPlant === '天竺葵') {
+                if (verificationMethod!== '碘液') {
+                    showFeedback("使用天竺葵进行实验时，验证方式必须选择碘液", false);
+                    return;
+                }
+                if (darkTreatment!== '是') {
+                    showFeedback("使用天竺葵进行实验时，必须进行暗处理", false);
+                    return;
+                }
+            } else if (selectedPlant === '金鱼藻') {
+                if (verificationMethod === '碘液' && darkTreatment!== '是') {
+                    showFeedback("使用金鱼藻并选择碘液验证时，必须进行暗处理", false);
+                    return;
+                }
+            } else if (!selectedPlant) {
+                showFeedback("请至少选择一种实验植物（天竺葵或金鱼藻或银边天竺葵）", false);
+                return;
+            }
+
+            const results = {
+                exp: analyzeGroup('expWrapper'),
+                control: analyzeGroup('controlWrapper')
+            };
+
+            // 验证两组植物是否相同
+            const expHasPlant = results.exp.hasPlant;
+            const expHasHornwort = results.exp.hasHornwort;
+            const controlHasPlant = results.control.hasPlant;
+            const controlHasHornwort = results.control.hasHornwort;
+            
+            if ((expHasPlant && controlHasHornwort) || (expHasHornwort && controlHasPlant)) {
+                showFeedback("实验组和对照组必须使用同一种植物（要么都是天竺葵，要么都是金鱼藻）", false);
+                return;
+            }
+
+            let errorMsg = '';
+
+            if (selectedVariable === '二氧化碳') {
+                // 验证玻璃罩
+                if (!results.exp.hasGlassCover) errorMsg += "❌ 实验组缺少玻璃罩<br>";
+                if (!results.control.hasGlassCover) errorMsg += "❌ 对照组缺少玻璃罩<br>";
+                
+                // 实验组验证 - 有光条件
+                if (!results.exp.hasPlant) errorMsg += "❌ 实验组缺少天竺葵<br>";
+                if (!results.exp.hasNaOH) errorMsg += "❌ 实验组未使用氢氧化钠溶液<br>";
+                if (results.exp.hasWater) errorMsg += "❌ 实验组不应出现清水<br>";
+                if (!results.exp.hasLight) errorMsg += "❌ 实验组需要光源<br>";
+
+                // 对照组验证 - 有光条件
+                if (!results.control.hasPlant) errorMsg += "❌ 对照组缺少天竺葵<br>";
+                if (!results.control.hasWater) errorMsg += "❌ 对照组未使用清水<br>";
+                if (results.control.hasNaOH) errorMsg += "❌ 对照组不应出现氢氧化钠<br>";
+                if (!results.control.hasLight) errorMsg += "❌ 对照组需要光源<br>";
+
+                // 综合验证
+                if (errorMsg === '') {
+                    if (verificationMethod === '碘液') {
+                        showFeedback("✅ 实验配置完全正确！<br><br>实验结论：<br>实验组叶片遇碘不变蓝，对照组变蓝，证明二氧化碳是光合作用必需原料", true);
+                    } else {
+                        showFeedback("✅ 实验配置完全正确！<br><br>实验结论：<br>实验组产生氧气较少，卫生香熄灭，对照组产生氧气较多，卫生香复燃，证明二氧化碳是光合作用必需原料", true);
+                    }
+                } else {
+                    showFeedback("发现以下问题：<br>" + errorMsg, false);
+                }
+            } else if (selectedVariable === '光') {
+                // 验证不能有玻璃罩
+                if (results.exp.hasGlassCover) errorMsg += "❌ 探究光变量时实验组不应有玻璃罩<br>";
+                if (results.control.hasGlassCover) errorMsg += "❌ 探究光变量时对照组不应有玻璃罩<br>";
+                
+                // 实验组验证 - 无光条件
+                if (!results.exp.hasPlant && !results.exp.hasHornwort) errorMsg += "❌ 实验组缺少植物<br>";
+                if (results.exp.hasLight) errorMsg += "❌ 实验组不需要光源<br>";
+                if (results.exp.hasNaOH) errorMsg += "❌ 实验组不应出现氢氧化钠<br>";
+
+                // 对照组验证 - 有光条件
+                if (!results.control.hasPlant && !results.control.hasHornwort) errorMsg += "❌ 对照组缺少植物<br>";
+                if (!results.control.hasLight) errorMsg += "❌ 对照组需要光源<br>";
+                if (results.control.hasNaOH) errorMsg += "❌ 对照组不应出现氢氧化钠<br>";
+
+                // 综合验证
+                if (errorMsg === '') {
+                    if (verificationMethod === '碘液') {
+                        showFeedback("✅ 实验配置完全正确！<br><br>实验结论：<br>实验组叶片遇碘不变蓝，对照组变蓝，证明光是光合作用的条件", true);
+                    } else {
+                        showFeedback("✅ 实验配置完全正确！<br><br>实验结论：<br>实验组产生氧气较少，卫生香熄灭，对照组产生氧气较多，卫生香复燃，证明光是光合作用的条件", true);
+                    }
+                } else {
+                    showFeedback("发现以下问题：<br>" + errorMsg, false);
+                }
+            }
+        }
+
+        // 分析实验区
+        function analyzeGroup(wrapperId) {
+            const wrapper = document.getElementById(wrapperId);
+            const hasPlant = wrapper.querySelectorAll('#plant').length >= 1;
+            const hasHornwort = wrapper.querySelectorAll('#hornwort').length >= 1;
+            const hasVariegatedGeranium = wrapper.querySelectorAll('#variegatedGeranium').length >= 1;
+            const hasNaOH = wrapper.querySelectorAll('#naoh').length >= 1;
+            const hasWater = wrapper.querySelectorAll('#water').length >= 1;
+            const hasLight = wrapper.querySelectorAll('#light').length >= 1;
+            const hasGlassCover = wrapper.querySelectorAll('.glass-container').length >= 1;
+
+            return {
+                hasPlant,
+                hasHornwort,
+                hasVariegatedGeranium,
+                hasNaOH,
+                hasWater,
+                hasLight,
+                hasGlassCover
+            };
+        }
+
+        // 显示反馈信息
+        function showFeedback(msg, isSuccess) {
+            const feedback = document.getElementById('feedback');
+            if (isSuccess) {
+                feedback.style.backgroundColor = '#e8f5e9';
+                feedback.style.borderColor = '#4CAF50';
+                feedback.style.color = '#2e7d32';
+            } else {
+                feedback.style.backgroundColor = '#fff3e0';
+                feedback.style.borderColor = '#ff9800';
+                feedback.style.color = '#e65100';
+            }
+            feedback.innerHTML = msg;
+        }
+
+        // 显示错误弹窗
+        function showErrorPopup(msg) {
+            const errorPopup = document.getElementById('errorPopup');
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.innerHTML = msg;
+            errorPopup.style.display = 'block';
+        }
+
+        // 重置实验
+        function resetExperiment() {
+            // 重置所有状态变量
+            selectedVariable = null;
+            verificationMethod = null;
+            darkTreatment = null;
+            selectedPlant = null;
+            draggedItem = null;
+
+            // 重置UI元素
+            document.getElementById('normalContainer').style.display = 'flex';
+            document.getElementById('chloroplastContainer').style.display = 'none';
+            
+            // 清空所有实验区
+            document.querySelectorAll('.glass-cover-area').forEach(area => {
+                area.innerHTML = '';
+            });
+            
+            // 移除所有非玻璃罩区域的物品
+            document.querySelectorAll('.experiment-wrapper').forEach(wrapper => {
+                wrapper.querySelectorAll('#plant, #hornwort, #naoh, #water, #light, #variegatedGeranium').forEach(item => {
+                    item.parentNode.removeChild(item);
+                });
+            });
+            
+            // 重置材料区 - 确保只显示初始材料
+            const materialBox = document.getElementById('materialBox');
+            materialBox.innerHTML = '';
+            
+            // 添加初始材料
+            const initialMaterials = [
+                {id: 'plant', src: 'images/plant.png', alt: '天竺葵', className: 'draggable plant-img'},
+                {id: 'hornwort', src: 'images/hornwort.png', alt: '金鱼藻', className: 'draggable plant-img'},
+                {id: 'variegatedGeranium', src: 'images/variegated-geranium.png', alt: '银边天竺葵', className: 'draggable plant-img'},
+                {id: 'naoh', src: 'images/naoh.png', alt: '氢氧化钠', className: 'draggable beaker'},
+                {id: 'water', src: 'images/water.png', alt: '清水', className: 'draggable beaker'},
+                {id: 'light', src: 'images/light.png', alt: '光源', className: 'draggable light-source'},
+                {id: 'glassCover', src: 'images/glass-cover.png', alt: '玻璃罩', className: 'draggable glass-cover-img'}
+            ];
+            
+            initialMaterials.forEach(material => {
+                const img = document.createElement('img');
+                img.id = material.id;
+                img.src = material.src;
+                img.alt = material.alt;
+                img.className = material.className;
+                img.draggable = false;
+                img.style.opacity = '0.5';
+                img.style.pointerEvents = 'none';
+                img.style.cursor = 'not-allowed';
+                materialBox.appendChild(img);
+            });
+            
+            // 重置反馈信息
+            document.getElementById('feedback').innerHTML = "请依次选择变量、验证方式和暗处理选项，然后搭建实验装置，完成后点击验证";
+            document.getElementById('feedback').style.backgroundColor = '';
+            document.getElementById('feedback').style.borderColor = '';
+            document.getElementById('feedback').style.color = '';
+            
+            // 禁用拖拽功能
+            disableDragging();
+        }
+    </script>
+</body>
+
+</html>
